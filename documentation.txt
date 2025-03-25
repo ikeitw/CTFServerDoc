@@ -1,0 +1,880 @@
+Step 1:
+Change the password of the vm's user:
+sudo passwd student
+Step 2-3:
+Generate ssh key on your host machine:
+ssh-keygen -t rsa -b 4096
+Copy the ssh key:
+type $env:USERPROFILE\.ssh\id_rsa.pub
+
+Linux vm to enable enter without the password:
+mkdir -p ~/.ssh
+nano ~/.ssh/authorized_keys
+"Paste your ssh keye there"
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+nano ~/.ssh/authorized_keys
+"Paste ssh key of the teachers"
+
+Step 4:
+Install apache on the linux:
+sudo apt update
+sudo apt install apache2 -y
+
+Check if the apache is running on the vm:
+sudo systemctl status apache2
+"If its running skip next step, if not, then do it"
+if its not active, start it
+sudo systemctl start apache2
+
+To check if the apache is working properly, go to the website of the vm:
+http://CTF-debian12-30.ctf.edu.technet.howest.be
+
+Step 5:
+Create a new config file:
+sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/ctf-website.conf
+
+"Now edit the config file that you just created"
+sudo nano /etc/apache2/sites-available/ctf-website.conf
+
+so it will look something like this at the end:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+Step 6:
+The name of this user is www-data
+Next we create our own website folder:
+sudo mkdir -p /var/www/ctf-website
+And add a simple index.html to see if it works correctly:
+echo "<h1>Hello from CTF Website</h1>" | sudo tee /var/www/ctf-website/index.html
+
+Now set the correct permissions for the folders:
+sudo chown -R www-data:www-data /var/www/ctf-website
+sudo chmod -R 755 /var/www/ctf-website
+
+Enable the new config and disable the default site to avoid conflicts:
+sudo a2ensite ctf-website.conf
+sudo a2dissite 000-default.conf
+And restart the apache so everything will work according to the comands that you executed:
+sudo systemctl reload apache2
+
+Now again check the website:
+http://CTF-debian12-30.ctf.edu.technet.howest.be
+
+If everything works, you will see something like this:
+screen1
+
+Step 7:
+Create website structure and add content according to the commands from the word document:
+sudo mkdir -p /var/www/html/a /var/www/html/b /var/www/html/1/2/3 /var/www/html/mickey /var/www/html/mouse /var/www/html/mickeymouse
+sudo touch /var/www/html/a/test.html
+sudo touch /var/www/html/1/2/3/test.html
+sudo touch /var/www/html/mickey/index.html
+sudo touch /var/www/html/mouse/index.html
+sudo touch /var/www/html/mickeymouse/index.html
+
+Then put some content in that files:
+echo "<h2>This is A - test.html</h2>" | sudo tee /var/www/html/a/test.html
+echo "<h2>This is nested file at /1/2/3/test.html</h2>" | sudo tee /var/www/html/1/2/3/test.html
+echo "<h2>Welcome to Mickey's page</h2>" | sudo tee /var/www/html/mickey/index.html
+echo "<h2>Welcome to Mouse's page</h2>" | sudo tee /var/www/html/mouse/index.html
+echo "<h2>This is MickeyMouse merged site</h2>" | sudo tee /var/www/html/mickeymouse/index.html
+
+Also set correct ownership to the folders:
+sudo chown -R www-data:www-data /var/www/html/
+sudo chmod -R 755 /var/www/html/
+
+Again test the website via this link:
+http://CTF-debian12-30.ctf.edu.technet.howest.be/1/
+
+Nothing works, because you need to specified the document root for the /var/www/ctf-website and you just created the files inside of the /var/www/html/
+So, we are going to move them to the /var/www/ctf-website
+sudo mv /var/www/html/a /var/www/ctf-website/
+sudo mv /var/www/html/b /var/www/ctf-website/
+sudo mv /var/www/html/1 /var/www/ctf-website/
+sudo mv /var/www/html/mickey /var/www/ctf-website/
+sudo mv /var/www/html/mouse /var/www/ctf-website/
+sudo mv /var/www/html/mickeymouse /var/www/ctf-website/
+
+Will also fix the ownership again:
+sudo chown -R www-data:www-data /var/www/ctf-website/
+
+Step 8:
+Again test the website via this link:
+http://CTF-debian12-30.ctf.edu.technet.howest.be/1/
+
+it should look like in the screenshots:
+screen2
+screen3
+screen4
+screen5
+screen6
+screen7
+screen8
+screen9
+
+Step 9:
+Use robots.txt to prevent the a and b from search engines:
+sudo nano /var/www/ctf-website/robots.txt
+
+Put this in the robots.txt file:
+User-agent: *
+Disallow: /a/
+Disallow: /b/
+
+Also optionally we will add the .htaccess for extra protection:
+sudo nano /var/www/ctf-website/a/.htaccess
+sudo nano /var/www/ctf-website/b/.htaccess
+
+Put this in each file:
+RewriteEngine On
+RewriteCond %{HTTP_USER_AGENT} ^.*(bot|crawl|slurp|spider).*$ [NC]
+RewriteRule ^.*$ - [F,L]
+
+Change the permissions of the file robots.txt:
+sudo chown www-data:www-data /var/www/ctf-website/robots.txt
+sudo chmod 644 /var/www/ctf-website/robots.txt
+
+Change the permissions of the folder with the robots.txt:
+sudo chown -R www-data:www-data /var/www/ctf-website/
+sudo chmod -R 755 /var/www/ctf-website/
+
+After that reload the apache once again:
+sudo systemctl reload apache2
+
+To check if everything works, go to the website:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/robots.txt
+
+Should look like in the screenshot:
+screen10
+
+Step 10:
+
+Check the ctf-website.conf file:
+cat /etc/apache2/sites-enabled/ctf-website.conf
+
+It should look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/ctf-error.log
+    CustomLog ${APACHE_LOG_DIR}/ctf-access.log combined
+</VirtualHost>
+
+
+Step 11:
+
+Run this:
+sudo a2dissite 000-default.conf
+
+Then reload the apache once again:
+sudo systemctl reload apache2
+
+
+Step 12:
+Edit the main Apache config file:
+Change these lines:
+ServerTokens OS
+ServerSignature On
+
+So they will look like this:
+ServerTokens Prod
+ServerSignature Off
+
+Restart apache to aplly the changes that you just did:
+sudo systemctl restart apache2
+
+Visit the link to check if everything works correctly:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/a/12312
+
+It should look like in the screenshot:
+screen11
+
+
+Step 13:
+Edit the apache site config:
+sudo nano /etc/apache2/sites-available/ctf-website.conf
+
+Inside of the <VirtualHost *:80> block add this block:
+<Directory /var/www/ctf-website>
+    Options -Indexes +FollowSymLinks
+    AllowOverride All
+</Directory>
+
+So it will look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+</VirtualHost>
+
+Reload the apache to apply the changes:
+sudo systemctl reload apache2
+
+Test the website via this link again:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/1/
+
+It will look something like this:
+screen12
+
+Step 14:
+Edit the apache config to enable hostname lookups:
+sudo nano /etc/apache2/apache2.conf
+
+Add this line at the bottom of the file:
+HostnameLookups On
+
+Restart the apache once again to apply the changes:
+sudo systemctl restart apache2
+
+Test it using this command:
+sudo tail -f /var/log/apache2/access.log
+
+And visit this website again:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/1/
+
+Step 15:
+Enable apache headers module (if they are not enabled already):
+sudo a2enmod headers
+sudo systemctl restart apache2
+
+Edit your VirtualHost config:
+sudo nano /etc/apache2/sites-available/ctf-website.conf
+
+So it will look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "script-src 'self';"
+    Header always set Referrer-Policy "same-origin"
+
+</VirtualHost>
+
+Reload the apache again:
+sudo systemctl reload apache2
+
+Verify the headers:
+curl -I http://ctf-debian12-30.ctf.edu.technet.howest.be
+
+Should look like in the screenshot:
+screen13
+
+
+Basic Authentication
+
+Step 16:
+Create a password file:
+Install:
+sudo apt install apache2-utils -y
+Then create the password file and user:
+sudo htpasswd -c /etc/apache2/.htpasswd student
+
+Protect a directory, for example /mickeymouse:
+Add this block after the headers that you just added:
+<Directory "/var/www/ctf-website/mickeymouse">
+    AuthType Basic
+    AuthName "Restricted Area"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require valid-user
+</Directory>
+
+So it will look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "script-src 'self';"
+    Header always set Referrer-Policy "same-origin"
+
+    <Directory "/var/www/ctf-website/mickeymouse">
+        AuthType Basic
+        AuthName "Restricted Area"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require valid-user
+    </Directory>
+
+</VirtualHost>
+
+Reload the apache once again:
+sudo systemctl reload apache2
+
+Test the website:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/mickeymouse/
+
+It should show you a pop-up login, you can login with the user student and password that you created before:
+login: student
+password: passwordctf30
+
+Step 17:
+Update the .httpasswd file:
+sudo htpasswd -c /etc/apache2/.htpasswd mickey
+Set password mickey
+
+Same for mouse but without the -c:
+sudo htpasswd /etc/apache2/.htpasswd mouse
+Set password mouse
+
+Check the file, it should contain mickey and mouse and their password but they are not readable:
+cat /etc/apache2/.htpasswd
+
+Something like this:
+student@debian:~$ cat /etc/apache2/.htpasswd
+mickey:$apr1$CsUe9LMW$ojcF5dTjk7pJrTBvFuwX.1
+mouse:$apr1$hpT01mqM$45p0yufN0cKjfGvPhPwic0
+
+Update your VirtualHost config:
+sudo nano /etc/apache2/sites-available/ctf-website.conf
+
+After the last directory block that you wrote there, add these three blocks as well:
+<Directory "/var/www/ctf-website/mickey">
+    AuthType Basic
+    AuthName "Mickey Only Area"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require user mickey
+</Directory>
+
+<Directory "/var/www/ctf-website/mouse">
+    AuthType Basic
+    AuthName "Mouse Only Area"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require user mouse
+</Directory>
+
+<Directory "/var/www/ctf-website/mickeymouse">
+    AuthType Basic
+    AuthName "Mickey & Mouse Shared Area"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require user mickey mouse
+</Directory>
+
+
+So it will look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "script-src 'self';"
+    Header always set Referrer-Policy "same-origin"
+
+    <Directory "/var/www/ctf-website/mickeymouse">
+        AuthType Basic
+        AuthName "Restricted Area"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require valid-user
+    </Directory>
+
+    <Directory "/var/www/ctf-website/mickey">
+        AuthType Basic
+        AuthName "Mickey Only Area"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require user mickey
+    </Directory>
+    <Directory "/var/www/ctf-website/mouse">
+        AuthType Basic
+        AuthName "Mouse Only Area"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require user mouse
+    </Directory>
+    <Directory "/var/www/ctf-website/mickeymouse">
+        AuthType Basic
+        AuthName "Mickey & Mouse Shared Area"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require user mickey mouse
+    </Directory>
+
+</VirtualHost>
+
+Reload the apache once again:
+sudo systemctl reload apache2
+
+Now test it using these links:
+If you wrote mouse there it will ask you to write the right credentials again, until you write mickey's credentials:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/mickey/
+
+
+The same with this link, but vise versa, so mouse can access it and mickey cant:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/mouse/
+
+But this link will allow mickey and mouse:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/mickeymouse/
+
+Step 18:
+Using wireshark try to find the password:
+Open you wireshark and start it, then do this command in your cmd:
+curl -u mickey:mickey http://ctf-debian12-30.ctf.edu.technet.howest.be/mickey/
+
+After that apply filter in the wireshark:
+http.authorization
+
+An you will see the this:
+Authorization: Basic bWlja2V5Om1pY2tleQ==
+
+You decrypt it and it will give you the password:
+mickey
+
+Unfortuantelly, because i am connected over vpn, i cant do this, because vpn encrypts everything before it even goes to my internet card, so i cant post a screenshot or something simmilar to demonstrate that it can be done.
+
+
+Modern webserver configuration: HTTPS (self-signed)
+Step 19:
+Create the folder:
+sudo mkdir -p /etc/ssl/server
+
+Generate the self-signed certificate and private key:
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/server/ctf-server.key -out /etc/ssl/server/ctf-server.crt
+
+Country Name:	BE
+State or Province Name:	West-Flanders
+Locality Name:	Bruges
+Organization Name:	Howest
+Organizational Unit Name:	CS
+Common Name: CTF-debian12-30.ctf.edu.technet.howest.be
+Email Address: group30ctf@howest.be
+
+Enable ssl module:
+sudo a2enmod ssl
+
+Then create a new config for your secure site:
+sudo cp /etc/apache2/sites-available/ctf-website.conf /etc/apache2/sites-available/ctf-website-ssl.conf
+
+Edit it:
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+
+and add this at the end of the conf file:
+<VirtualHost *:443>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/ctf-ssl-error.log
+    CustomLog ${APACHE_LOG_DIR}/ctf-ssl-access.log combined
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/server/ctf-server.crt
+    SSLCertificateKeyFile /etc/ssl/server/ctf-server.key
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "script-src 'self';"
+    Header always set Referrer-Policy "same-origin"
+</VirtualHost>
+
+Then enable https site and restart apache:
+sudo a2ensite ctf-website-ssl.conf
+sudo systemctl reload apache2
+
+Test it by visiting it should give you a warning, if you accept it the https will work:
+https://ctf-debian12-30.ctf.edu.technet.howest.be/
+
+should look like in the screenshot:
+screen14
+
+Step 20:
+I cant prove it because i am connected using the vpn and it doesnt show any information, i explained that in the step 18
+
+Step 21:
+Edit the http (port 80) config:
+sudo nano /etc/apache2/sites-available/ctf-website.conf
+and 
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+
+Replace the whole block of VirtualHost *:80 with this new block:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    Redirect permanent / https://ctf-debian12-30.ctf.edu.technet.howest.be/
+</VirtualHost>
+
+Enable the site and reload the apache:
+sudo a2ensite ctf-website.conf
+sudo systemctl reload apache2
+
+Now try to go to this link, it should redirect you to the https version of it:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/
+
+
+Modern webserver configuration: HTTPS (using a CA)
+
+Step 22:
+Create the folder structure:
+sudo mkdir -p /etc/ssl/server/MyOrg-RootCA
+cd /etc/ssl/server/MyOrg-RootCA
+
+Generate the CA private key:
+sudo openssl genrsa -out MyOrg-RootCA.key 4096
+
+Generate the CA certificate:
+sudo openssl req -x509 -new -nodes -key MyOrg-RootCA.key -sha256 -days 3650 -out MyOrg-RootCA.crt
+
+Country Name:	BE
+State or Province Name:	West-Flanders
+Locality Name:	Bruges
+Organization Name:	Howest
+Organizational Unit Name:	CS
+Common Name	MyOrg Root: CA
+Email Address:	group30ctf@howest
+
+In the folder /etc/ssl/server/MyOrg-RootCA verify the files:
+put a command ls:
+Should look like that:
+student@debian:/etc/ssl/server/MyOrg-RootCA$ ls
+MyOrg-RootCA.crt  MyOrg-RootCA.key
+
+Step 23:
+cd /etc/ssl/server
+
+Create a new private key and certificate signing request (CSR):
+sudo openssl genrsa -out signed.key 2048
+sudo openssl req -new -key signed.key -out signed.csr
+
+Country Name:	BE
+State or Province Name:	West-Flanders
+Locality Name:	Bruges
+Organization Name:	Howest
+Organizational Unit Name:	CS
+Common Name: ctf-debian12-30.ctf.edu.technet.howest.be
+Email Address: group30ctf@howest
+
+Sign the CSR using your custom CA:
+sudo openssl x509 -req -in signed.csr -CA MyOrg-RootCA/MyOrg-RootCA.crt -CAkey MyOrg-RootCA/MyOrg-RootCA.key -CAcreateserial -out signed.crt -days 365 -sha256
+
+Update apache ssl config:
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+
+Change these lines:
+SSLCertificateFile /etc/ssl/server/ctf-server.crt
+SSLCertificateKeyFile /etc/ssl/server/ctf-server.key
+
+To these lines:
+SSLCertificateFile /etc/ssl/server/signed.crt
+SSLCertificateKeyFile /etc/ssl/server/signed.key
+SSLCACertificateFile /etc/ssl/server/MyOrg-RootCA/MyOrg-RootCA.crt
+
+Reload the apache:
+sudo systemctl reload apache2
+
+Step 24-26:
+Import the CA certificate to the main machine, i will use the acutal server for it:
+sudo cp /etc/ssl/server/MyOrg-RootCA/MyOrg-RootCA.crt /var/www/ctf-website/ca.crt
+
+Then go to this link and it will download it automatically:
+http://ctf-debian12-30.ctf.edu.technet.howest.be/ca.crt
+
+Press Win+r and type certmgr.msc:
+Navigate to > Trusted Root Certification Authorities → Certificates
+
+Right click on the Certificates > all tasks > import
+Find your ca.crt and import it
+Then place it in Trusted Root Certification Authorities
+And click through the wizard until it confirms the import is successful
+
+Restart your browser and check the website:
+https://ctf-debian12-30.ctf.edu.technet.howest.be/
+
+It will still show you the message but its related to the SAN:
+
+Create a config like this:
+sudo nano /etc/ssl/server/san.conf
+
+Paste this into the file:
+
+[ req ]
+default_bits       = 2048
+prompt             = no
+default_md         = sha256
+req_extensions     = req_ext
+distinguished_name = dn
+
+[ dn ]
+C = BE
+ST = West-Flanders
+L = Bruges
+O = Howest
+OU = CS
+CN = ctf-debian12-30.ctf.edu.technet.howest.be
+
+[ req_ext ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = ctf-debian12-30.ctf.edu.technet.howest.be
+IP.1 = 192.168.30.101
+
+Recreate the CSR and sigh it with SAN:
+cd /etc/ssl/server
+sudo openssl req -new -nodes -out signed.csr -keyout signed.key -config san.conf
+
+Sign with your CA:
+sudo openssl x509 -req -in signed.csr -CA MyOrg-RootCA/MyOrg-RootCA.crt -CAkey MyOrg-RootCA/MyOrg-RootCA.key -CAcreateserial -out signed.crt -days 365 -sha256 -extensions req_ext -extfile san.conf
+
+Reload the apache:
+sudo systemctl reload apache2
+
+Now go to the website and it will not show any messages:
+https://ctf-debian12-30.ctf.edu.technet.howest.be/
+
+
+The other way around: Client Certificate
+
+Generate a client certificate and key:
+cd /etc/ssl/server
+sudo openssl genrsa -out client.key 2048
+sudo openssl req -new -key client.key -out client.csr
+
+Common Name:	client-user
+
+Sign the client certificate with your Root CA:
+sudo openssl x509 -req -in client.csr -CA MyOrg-RootCA/MyOrg-RootCA.crt -CAkey MyOrg-RootCA/MyOrg-RootCA.key -CAcreateserial -out client.crt -days 365 -sha256
+
+Create a .p12 certificate for import in browser:
+sudo openssl pkcs12 -export -out client.p12 -inkey client.key -in client.crt -certfile MyOrg-RootCA/MyOrg-RootCA.crt
+
+Configure apache to request and validate client certificate:
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+
+Inside of the block <VirtualHost *:443> add this:
+SSLVerifyClient require
+SSLVerifyDepth 1
+SSLCACertificateFile /etc/ssl/server/MyOrg-RootCA/MyOrg-RootCA.crt
+
+So it will look like this:
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    Redirect permanent / https://ctf-debian12-30.ctf.edu.technet.howest.be/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerAdmin webmaster@localhost
+    ServerName ctf-website.local
+    DocumentRoot /var/www/ctf-website
+
+    ErrorLog ${APACHE_LOG_DIR}/ctf-ssl-error.log
+    CustomLog ${APACHE_LOG_DIR}/ctf-ssl-access.log combined
+
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/server/signed.crt
+    SSLCertificateKeyFile /etc/ssl/server/signed.key
+    SSLCACertificateFile /etc/ssl/server/MyOrg-RootCA/MyOrg-RootCA.crt
+    SSLVerifyClient require
+    SSLVerifyDepth 1
+
+    <Directory /var/www/ctf-website>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Content-Security-Policy "script-src 'self';"
+    Header always set Referrer-Policy "same-origin"
+</VirtualHost>
+
+Reload the apache once again:
+sudo systemctl reload apache2
+
+Now if you go to this website it will tell you that you are blocked:
+https://ctf-debian12-30.ctf.edu.technet.howest.be/
+
+Transfer of the client.p12 via the website:
+
+Copy in web root:
+sudo cp /etc/ssl/server/client.p12 /var/www/ctf-website/client.p12
+sudo chmod 644 /var/www/ctf-website/client.p12
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+In the config file change:
+SSLVerifyClient require to SSLVerifyClient optional
+And add this block before the headers:
+<Location "/client.p12">
+    SSLVerifyClient none
+</Location>
+
+Reload the apache:
+sudo systemctl reload apache2
+
+Go to the website and download it:
+https://ctf-debian12-30.ctf.edu.technet.howest.be/client.p12
+
+After that revert everything that you did, so do this:
+sudo nano /etc/apache2/sites-available/ctf-website-ssl.conf
+
+Change this:
+SSLVerifyClient optional to SSLVerifyClient require
+
+And delete this block:
+<Location "/client.p12">
+    SSLVerifyClient none
+</Location>
+
+Also delete it from the server:
+sudo rm /var/www/ctf-website/client.p12
+
+
+When you have client.p12 file do this:
+
+Win+r then write certmgr.msc
+You go to Personal > Certificates
+Right click Certificates, import and import the client.p12
+
+It will ask for the password, write it:
+password = passwordctf30
+Click on let it be exportable (optional)
+
+Import into Current User > Personal
+
+Visit website again to verify the certificate, select the user-client certificate:
+https://ctf-debian12-30.ctf.edu.technet.howest.be
+
+
+Step 28:
+Some creation of the professional website:
+
+Html page:
+sudo nano /var/www/ctf-website/index.html
+
+The code:
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CTF Web Portal</title>
+    <link rel="stylesheet" href="style.css">
+	<script src="script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the CTF Website</h1>
+        <p>This server is secured with HTTPS, client authentication, and follows hardening best practices.</p>
+        <ul>
+            <li><a href="/mickey/">Mickey's Page</a></li>
+            <li><a href="/mouse/">Mouse's Page</a></li>
+            <li><a href="/mickeymouse/">Shared Page</a></li>
+        </ul>
+    </div>
+</body>
+</html>
+
+Add the css to it:
+sudo nano /var/www/ctf-website/style.css
+
+The code:
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    text-align: center;
+    margin-top: 100px;
+}
+
+.container {
+    background: white;
+    padding: 40px;
+    max-width: 600px;
+    margin: auto;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+a {
+    color: #2e5aac;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.welcome-message {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.8s ease;
+    background-color: #2e5aac;
+    color: white;
+    padding: 20px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.welcome-message.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+
+Add the JavaScript:
+sudo nano /var/www/ctf-website/script.js
+
+The code:
+document.addEventListener("DOMContentLoaded", () => {
+    const welcomeBox = document.createElement("div");
+    welcomeBox.className = "welcome-message";
+    welcomeBox.innerHTML = "<h2>Welcome to the CTF Web Portal 👋</h2><p>Secure. Professional. Yours.</p>";
+    
+    document.body.prepend(welcomeBox);
+
+    // Fade in effect
+    setTimeout(() => {
+        welcomeBox.classList.add("visible");
+    }, 100);
+});
